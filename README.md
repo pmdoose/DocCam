@@ -24,3 +24,8 @@ Trapezoidal transform (To correct for Camera angle)
   (no current hotkeys)
 
 My intention is to keep this full features yet simple to use/understand
+
+
+Use: Just save the DocCam.html file and load it into a WebBrowser
+
+Note: This can be hosted on a webserver but a secure connection will be required to allow webcamera permissions.
