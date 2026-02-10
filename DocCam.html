@@ -1,0 +1,330 @@
+<html>
+    <head>
+        <title>DocCam</title>
+        <meta charset="UTF-8">
+        <meta name="description" content="Free document camera web application for education.">
+        <meta name="keywords" content="document camera, document, camera, doccam. web application, education, free software">
+        <meta name="author" content="Paul Doose">
+        <meta name="version" content="2025-02-10.03">
+    </head>
+    <body style="background-color: #000000; color:#FFFFFF">
+
+        <table class="main_table" style="background-color: #2c2c2c; color:#FFFFFF; width: 100%; height: 100%; border: none">
+            <tr><td class="base" style="height: 24px; text-align: center;"><span id="td_info" style ="display: inline-block;"> 
+                <label for="freeze">Freeze</label><input type="checkbox" id="freeze" name="freeze" value="no" style="margin-right: 30px">
+                <label for="scale">Zoom:</label><input type="range" id="scale" name="scale" min="0.4" max="20.0" value="1.0" step="0.1">
+                <input type="number" id="scale_num" name="scale_num" min="0.4" max="20.0" value="1.0" step="0.1" style="width: 60px; margin-left: 5px; margin-right: 30px;">
+                <label for="angle">Rotate:</label><input type="range" id="angle" name="angle" min="-360" max="360" value="0" step="5">
+                <input type="number" id="angle_num" name="angle_num" min="-360" max="360" value="0" step="1" style="width: 60px; margin-left: 5px;margin-right: 30px">
+                <label for="freeze">Full Screen</label><input type="checkbox" id="fullscreen" name="fullscreen" value="no">
+                <label for="t_angle" style="margin-left: 60px">Trapezoidal:</label><input type="range" id="t_angle" name="t_angle" min="-60" max="60" value="0" step="1">
+                <input type="number" id="t_angle_num" name="t_angle_num" min="-60" max="60" value="0" step="1" style="width: 60px; margin-left: 5px;margin-right: 30px">
+                
+            </span></td></tr>
+            <tr><td><div id="cam_display" style="position:relative; overflow: hidden; width: 100%; height: 100%;">
+                <div id="pan_layer" style="position: absolute; inset: 0; width: 100%; height: 100%; left:0; top:0;">
+                    <div id="prespective_layer" style="position: absolute; inset: 0; perspective: 1000px; width: 100%; height: 100%; left:0; top:0;">
+                        <div id="optical_layer" style="position: absolute; inset: 0; transform-origin: center center; width: 100%; height: 100%; left:0; top:0;">
+                            <video id="cam_out_layer" autoplay loop muted style="width: 100%; height: 100%; object-fit: contain;"></video>
+                        </div>
+                    </div>
+            </div></td></tr>
+        </table>
+        <script>
+            const controls = {
+                sel_cam: document.getElementById('cam_list'),
+                bar_angle: document.getElementById('angle'),
+                bar_angle_num: document.getElementById('angle_num'),
+                bar_scale: document.getElementById('scale'),
+                bar_scale_num: document.getElementById('scale_num'),
+                chk_freeze: document.getElementById('freeze'),
+                chk_fullscr : document.getElementById('fullscreen'),
+                bar_t_angle: document.getElementById('t_angle'),
+                bar_t_angle_num: document.getElementById('t_angle_num'),
+
+                disp_cam: document.getElementById('cam_display'),
+                pan_layer: document.getElementById('pan_layer'),
+                per_layer: document.getElementById('prespective_layer'),
+                optical_layer: document.getElementById('optical_layer'),
+                video_layer: document.getElementById('cam_out_layer'),
+            }
+
+            let state = { angle: 0, t_angle: 0, scale: 1, x: 0, y: 0}
+
+            // Function to normalize state values to ensure they are numbers and within expected ranges
+            function normalizeState() {
+                state.angle = Number(state.angle);
+                state.t_angle = Number(state.t_angle);
+                state.scale = Number(state.scale);
+                state.x = Number(state.x);
+                state.y = Number(state.y);
+            }
+
+            // Function to apply CSS transforms based on the current state values
+            function setPos() {
+                const y_adj = 1 / Math.cos(state.t_angle * Math.PI / 180);
+                const x_adj = 1 + (Math.tan(state.t_angle * Math.PI / 180) * 0.4); 
+                const height = controls.video_layer.videoHeight;
+                const t_y = (y_adj - 1) * height / 2;
+
+                controls.pan_layer.style.transform = `translate(${state.x}px, ${state.y}px) rotate(${state.angle}deg) scale(${state.scale})`;
+                controls.optical_layer.style.transform = `rotateX(${state.t_angle}deg) translateY(${t_y}px) scaleY(${y_adj}) scaleX(${x_adj})`;
+            }
+
+            // Initialization function to set up event listeners and start the camera stream
+            function init() {
+                startCamera()
+
+                // Listen for fullscreen change events to update the checkbox state
+                document.addEventListener('fullscreenchange', handleFullscreenChange);
+                document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // for General compatibility
+                document.addEventListener('mozfullscreenchange', handleFullscreenChange);   // for Firefox compatibility
+                document.addEventListener('MSFullscreenChange', handleFullscreenChange);    // for IE11 compatibility
+
+                // Initialize fullscreen checkbox state based on current fullscreen status
+                controls.chk_fullscr.checked = checkFullscreenState();
+                
+                // Event listener for fullscreen checkbox
+                controls.chk_fullscr.addEventListener('change', set_fullscreen_state);
+
+                // Event listeners for controls
+                // Angle controls
+                controls.bar_angle.addEventListener('input', (event) => {
+                    state.angle = Number(event.target.value);
+                    controls.bar_angle_num.value = Number(event.target.value);
+                    setPos();
+                });
+
+                controls.bar_angle_num.addEventListener('input', (event) => {
+                    state.angle = Number(event.target.value);
+                    while (state.angle < -360) state.angle += 360;
+                    while (state.angle > 360) state.angle -= 360;
+                    controls.bar_angle.value = state.angle;
+                    setPos();
+                });
+
+                // mouse wheel for zooming
+                document.addEventListener('wheel', (event) => {
+                    normalizeState();
+                    if (event.deltaY > 0) {
+                        state.scale = Math.max(0.4, Math.round((state.scale - 0.2)*10)/10);
+                    } else {
+                        state.scale = Math.min(20.0, Math.round((state.scale + 0.2)*10)/10);
+                    }
+                    controls.bar_scale.value = state.scale;
+                    controls.bar_scale_num.value = state.scale;
+                    setPos();
+                });
+
+                // Zooming controls
+                controls.bar_scale.addEventListener('input', (event) => {
+                    state.scale = Number(event.target.value);
+                    controls.bar_scale_num.value = Number(event.target.value);
+                    setPos();
+                });
+
+                controls.bar_scale_num.addEventListener('input', (event) => {
+                    state.scale = Number(event.target.value);
+                    controls.bar_scale.value = Number(event.target.value);
+                    setPos();
+                });
+
+                // Trapezoidal controls
+                controls.bar_t_angle.addEventListener('input', (event) => {
+                    state.t_angle = Number(event.target.value);
+                    controls.bar_t_angle_num.value = Number(event.target.value);
+                    setPos();
+                });
+
+                controls.bar_t_angle_num.addEventListener('input', (event) => {
+                    state.t_angle = Number(event.target.value);
+                    controls.bar_t_angle.value = Number(event.target.value);
+                    setPos();
+                });
+
+                // Camera freeze control
+                controls.chk_freeze.addEventListener('change', (event) => {
+                    if (event.target.checked) {
+                        controls.video_layer.pause();
+                    } else {
+                        controls.video_layer.play();
+                    }
+                });
+
+                // Keyboard controls
+                document.addEventListener('keydown', (event) => {
+                    normalizeState();
+                    switch(event.key) {
+                        case ' ':
+                            // Toggle freeze on spacebar
+                            event.preventDefault();
+                            controls.chk_freeze.checked = !controls.chk_freeze.checked;
+                            controls.chk_freeze.dispatchEvent(new Event('change'));
+                            break;
+                        case 'ArrowUp':
+                            // Pan up
+                            state.y -= 10;
+                            break;
+                        case 'ArrowDown':
+                            // Pan down
+                            state.y += 10;
+                            break;
+                        case 'ArrowLeft':
+                            // Pan left
+                            state.x -= 10;
+                            break;
+                        case 'ArrowRight':
+                            // Pan right
+                            state.x += 10;
+                            break;
+                        case '=':
+                        case '+':
+                            // Zoom in
+                            state.scale = Math.min(20.0, Math.round((state.scale + 0.2)*10)/10);
+                            controls.bar_scale.value = state.scale;
+                            controls.bar_scale_num.value = state.scale;
+                            break;
+                        case '-':
+                            // Zoom out
+                            state.scale = Math.max(1.0, Math.round((state.scale - 0.2)*10)/10);
+                            controls.bar_scale.value = state.scale;
+                            controls.bar_scale_num.value = state.scale;
+                            break;  
+                        case ',':
+                            // Rotate left
+                            state.angle = (Math.ceil(state.angle/5)*5) - 5;
+                            while (state.angle < -180) state.angle += 360;
+                            controls.bar_angle.value = state.angle;
+                            controls.bar_angle_num.value = state.angle;
+                            break;
+                        case '.':
+                            // Rotate right
+                            state.angle = (Math.floor(state.angle/5)*5) + 5;
+                            while (state.angle > 180) state.angle -= 360;
+                            controls.bar_angle.value = state.angle;
+                            controls.bar_angle_num.value = state.angle;
+                            break; 
+                        case 'Escape':
+                            if (checkFullscreenState()) {
+                                // Exit fullscreen on Escape key
+                                closeFullscreen();
+                            } else {
+                                // Enter fullscreen on Escape key if not already in fullscreen
+                                openFullscreen(controls.disp_cam);
+                            }
+                            break;
+                    }
+                    setPos();
+                });
+
+                // When mouse down event occurs in the camera display area, start tracking mouse movement for panning
+                controls.disp_cam.onmousedown = (event) => {
+                    normalizeState();
+                    //const win = controls.disp_cam.getBoundingClientRect();
+                    //const vid = controls.video_layer.getBoundingClientRect();
+
+                    let m = { x: event.clientX, y: event.clientY, sx: state.x, sy: state.y };
+
+                    // Install simple handlers for mouse move to pan adjustments
+                    document.onmousemove = (e) => {
+                        // Compute pan delta
+                        const dx = (e.clientX - m.x) / state.scale;
+                        const dy = (e.clientY - m.y) / state.scale;
+
+                        state.x = m.sx + dx;
+                        state.y = m.sy + dy;
+
+                        //apply rotations
+                        const angleRad = state.angle * Math.PI / 180;
+                        state.x = m.sx + dx * Math.cos(angleRad) + dy * Math.sin(angleRad);
+                        state.y = m.sy + -dx * Math.sin(angleRad) + dy * Math.cos(angleRad)
+                        
+                        // Compute transform origin relative to viewport center
+                        const originX = controls.disp_cam.clientWidth / 2 - state.x;
+                        const originY = controls.disp_cam.clientHeight / 2 - state.y;
+
+                        setPos();
+                        // Apply transform + origin
+                        controls.pan_layer.style.transformOrigin = `${originX}px ${originY}px`;
+                        
+                    };
+
+                    // Clear mouse move handler on mouse up to stop panning
+                    document.onmouseup = (e) => {
+                        document.onmousemove = null;
+                        document.onmouseup = null;
+                    }
+                };
+            }
+
+            // Fullscreen handling functions
+            // Listen for fullscreen change events to update the checkbox state
+            function handleFullscreenChange() {
+                controls.chk_fullscr.checked = checkFullscreenState();
+            }
+
+            // Function to check if the document is currently in fullscreen mode
+            function checkFullscreenState() {
+                return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            }
+
+            // Function to request fullscreen mode
+            function openFullscreen(elem) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) { /* Firefox */
+                    elem.mozRequestFullScreen();
+                } else if (elem.msRequestFullscreen) { /* IE11 */
+                    elem.msRequestFullscreen();
+                }
+            }
+
+            // Function to exit fullscreen mode
+            function closeFullscreen() {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) { /* Firefox */
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) { /* IE11 */
+                    document.msExitFullscreen();
+                }
+            }   
+
+            // Function to toggle fullscreen mode based on checkbox state
+            function set_fullscreen_state() {
+                if (controls.chk_fullscr.checked) {
+                    openFullscreen(controls.disp_cam);
+                } else {
+                    closeFullscreen();
+                }
+            }
+
+            // Function to start a specific camera stream
+            async function startCamera() {//deviceId) {
+                const constraints = {
+                    audio: false,
+                    video: {
+                        width: { ideal: 99999 }, // Request a very high ideal width
+                        height: { ideal: 99999 }, // Request a very high ideal height
+                        //deviceId: deviceId // Code was used to select specific camera.
+                        // Note: The browser will select the best available resolution up to the ideal values specified.
+                    }
+                };
+                try {
+                    // Request access to the camera with the specified constraints
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    // Set the video element's source to the camera stream
+                    controls.video_layer.srcObject = stream;
+                } catch (error) {
+                    // Handle any errors that occur while trying to access the camera
+                    console.error('Error starting camera:', error);
+                }
+            }
+            init();
+        </script>
+    </body>
+</html>
