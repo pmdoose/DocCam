@@ -5,7 +5,7 @@ It is designed and intended for to allows docuemts to be viewed using either a w
 
 This was desiged as a cross platform substution for cumbersome software which is often bundled with document cameras.<br>
 
-It's intended use is to be used with the web browser it is being mirrored to a projected image.<br>
+It's intended use is to be used with the web browser which is being mirrored to a projected image.<br>
 
 Included features are:<br><br>
 
