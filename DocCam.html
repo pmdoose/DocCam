@@ -5,7 +5,7 @@
         <meta name="description" content="Free document camera web application for education.">
         <meta name="keywords" content="document camera, document, camera, doccam. web application, education, free software">
         <meta name="author" content="Paul Doose">
-        <meta name="version" content="2025-02-10.03">
+        <meta name="version" content="2025-02-11.00">
     </head>
     <body style="background-color: #000000; color:#FFFFFF">
 
@@ -62,11 +62,19 @@
 
             // Function to apply CSS transforms based on the current state values
             function setPos() {
+                // Compute transform origin relative to viewport center
+                const originX = controls.disp_cam.clientWidth / 2 - state.x;
+                const originY = controls.disp_cam.clientHeight / 2 - state.y;
+                // Apply transform + origin
+                controls.pan_layer.style.transformOrigin = `${originX}px ${originY}px`;
+
+                // Calculate adjustments for trapezoidal transformation
                 const y_adj = 1 / Math.cos(state.t_angle * Math.PI / 180);
                 const x_adj = 1 + (Math.tan(state.t_angle * Math.PI / 180) * 0.4); 
                 const height = controls.video_layer.videoHeight;
                 const t_y = (y_adj - 1) * height / 2;
 
+                // Apply pan, rotation, and scaling transforms to the respective layers
                 controls.pan_layer.style.transform = `translate(${state.x}px, ${state.y}px) rotate(${state.angle}deg) scale(${state.scale})`;
                 controls.optical_layer.style.transform = `rotateX(${state.t_angle}deg) translateY(${t_y}px) scaleY(${y_adj}) scaleX(${x_adj})`;
             }
@@ -150,6 +158,10 @@
                         controls.video_layer.play();
                     }
                 });
+
+                window.addEventListener('resize', () => {
+                    setPos();
+                }); 
 
                 // Keyboard controls
                 document.addEventListener('keydown', (event) => {
@@ -238,15 +250,8 @@
                         const angleRad = state.angle * Math.PI / 180;
                         state.x = m.sx + dx * Math.cos(angleRad) + dy * Math.sin(angleRad);
                         state.y = m.sy + -dx * Math.sin(angleRad) + dy * Math.cos(angleRad)
-                        
-                        // Compute transform origin relative to viewport center
-                        const originX = controls.disp_cam.clientWidth / 2 - state.x;
-                        const originY = controls.disp_cam.clientHeight / 2 - state.y;
 
-                        setPos();
-                        // Apply transform + origin
-                        controls.pan_layer.style.transformOrigin = `${originX}px ${originY}px`;
-                        
+                        setPos();   
                     };
 
                     // Clear mouse move handler on mouse up to stop panning
@@ -279,6 +284,13 @@
                 } else if (elem.msRequestFullscreen) { /* IE11 */
                     elem.msRequestFullscreen();
                 }
+                requestAnimationFrame(() => {
+                    const originX = controls.disp_cam.clientWidth / 2 - state.x;
+                    const originY = controls.disp_cam.clientHeight / 2 - state.y;
+                    controls.pan_layer.style.transformOrigin = `${originX}px ${originY}px`;
+                    setPos()
+                });
+                
             }
 
             // Function to exit fullscreen mode
@@ -292,6 +304,12 @@
                 } else if (document.msExitFullscreen) { /* IE11 */
                     document.msExitFullscreen();
                 }
+                requestAnimationFrame(() => {
+                    const originX = controls.disp_cam.clientWidth / 2 - state.x;
+                    const originY = controls.disp_cam.clientHeight / 2 - state.y;
+                    controls.pan_layer.style.transformOrigin = `${originX}px ${originY}px`;
+                    setPos()
+                });
             }   
 
             // Function to toggle fullscreen mode based on checkbox state
@@ -324,6 +342,7 @@
                     console.error('Error starting camera:', error);
                 }
             }
+
             init();
         </script>
     </body>
