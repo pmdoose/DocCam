@@ -1,7 +1,7 @@
 # Document Viewer Webcam
 
 This is a very smple HTML wepage.<br>
-It is designed and intended to allow docuemts to be viewed using either a webcam or a camera device which communicates in a similar way to viewed.<br>
+It is designed and intended to allow docuemts to be viewed using either a webcam or a camera device which communicates in a similar way to viewed directly.<br>
 
 This was desiged as a cross platform substution for cumbersome software which is often bundled with document cameras.<br>
 
