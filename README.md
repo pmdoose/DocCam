@@ -16,7 +16,7 @@ Included features are:<br><br>
 * Zoom the image:<br>
   hotkeys + and - respectively or use the mousewheel
 * Pan the image:<br>
-  Just drage the image or use the arrow keys
+  Just drag the image or use the arrow keys
 * Full screen the image:<br>
   Hotkey Esc 
 * Trapezoidal transform (To correct for Camera angle):<br>
