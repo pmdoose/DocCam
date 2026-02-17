@@ -5,7 +5,7 @@
         <meta name="description" content="Free document camera web application for education.">
         <meta name="keywords" content="document camera, document, camera, doccam. web application, education, free software">
         <meta name="author" content="Paul Doose">
-        <meta name="version" content="20260211.02">
+        <meta name="version" content="20260217.01">
     </head>
     <body style="background-color: #000000; color:#FFFFFF">
 
@@ -242,9 +242,6 @@
                         // Compute pan delta
                         const dx = (e.clientX - m.x) / state.scale;
                         const dy = (e.clientY - m.y) / state.scale;
-
-                        state.x = m.sx + dx;
-                        state.y = m.sy + dy;
 
                         //apply rotations
                         const angleRad = state.angle * Math.PI / 180;
