@@ -5,7 +5,7 @@
         <meta name="description" content="Free document camera web application for education.">
         <meta name="keywords" content="document camera, document, camera, doccam. web application, education, free software">
         <meta name="author" content="Paul Doose">
-        <meta name="version" content="20260217.03">
+        <meta name="version" content="20260318.01">
     </head>
     <body style="background-color: #000000; color:#FFFFFF">
 
@@ -19,17 +19,20 @@
                 <label for="freeze">Full Screen</label><input type="checkbox" id="fullscreen" name="fullscreen" value="no">
                 <label for="t_angle" style="margin-left: 60px">Trapezoidal:</label><input type="range" id="t_angle" name="t_angle" min="-60" max="60" value="0" step="1">
                 <input type="number" id="t_angle_num" name="t_angle_num" min="-60" max="60" value="0" step="1" style="width: 60px; margin-left: 5px;margin-right: 30px">
+                <label for="brightness">Brightness:</label><input type="number" id="brightness" name="brightness" min="0.0" max="5.0" value="1.0" step="0.1" style="width: 60px; margin-left: 5px;margin-right: 10px">
+                <label for="contrast">Contrast:</label><input type="number" id="contrast" name="contrast" min="0.0" max="5.0" value="1.0" step="0.1" style="width: 60px; margin-left: 5px;margin-right: 30px">
                 
             </span></td></tr>
             <tr><td><div id="cam_display" style="position:relative; overflow: hidden; width: 100%; height: 100%;">
                 <div id="pan_layer" style="position: absolute; inset: 0; width: 100%; height: 100%; left:0; top:0; will-change: transform;">
                     <div id="prespective_layer" style="position: absolute; inset: 0; perspective: 1000px; width: 100%; height: 100%; left:0; top:0;">
                         <div id="optical_layer" style="position: absolute; inset: 0; transform-origin: center center; width: 100%; height: 100%; left:0; top:0; will-change: transform;">
-                            <video id="cam_out_layer" autoplay loop muted style="width: 100%; height: 100%; object-fit: contain;"></video>
+                            <video id="cam_out_layer" autoplay loop muted style="width: 100%; height: 100%; object-fit: contain; filter: contrast(100%) brightness(100%)"></video>
                         </div>
                     </div>
             </div></td></tr>
         </table>
+
         <script>
             const controls = {
                 sel_cam: document.getElementById('cam_list'),
@@ -41,6 +44,8 @@
                 chk_fullscr : document.getElementById('fullscreen'),
                 bar_t_angle: document.getElementById('t_angle'),
                 bar_t_angle_num: document.getElementById('t_angle_num'),
+                bar_brightness: document.getElementById('brightness'),
+                bar_contrast: document.getElementById('contrast'),
 
                 disp_cam: document.getElementById('cam_display'),
                 pan_layer: document.getElementById('pan_layer'),
@@ -49,7 +54,7 @@
                 video_layer: document.getElementById('cam_out_layer'),
             }
 
-            let state = { angle: 0, t_angle: 0, scale: 1, x: 0, y: 0}
+            let state = { angle: 0, t_angle: 0, scale: 1, x: 0, y: 0, brightness: 1.00, contrast: 1.00 };
 
             // Function to normalize state values to ensure they are numbers and within expected ranges
             function normalizeState() {
@@ -136,7 +141,7 @@
                     setPos();
                 });
 
-                // Zooming controls
+                // Zooming Controls
                 controls.bar_scale.addEventListener('input', (event) => {
                     state.scale = Number(event.target.value);
                     controls.bar_scale_num.value = Number(event.target.value);
@@ -149,7 +154,7 @@
                     setPos();
                 });
 
-                // Trapezoidal controls
+                // Trapezoidal Controls
                 controls.bar_t_angle.addEventListener('input', (event) => {
                     state.t_angle = Number(event.target.value);
                     controls.bar_t_angle_num.value = Number(event.target.value);
@@ -162,13 +167,24 @@
                     setPos();
                 });
 
-                // Camera freeze control
+                // Camera Freeze Control
                 controls.chk_freeze.addEventListener('change', (event) => {
-                    if (event.target.checked) {
+                    if (event.target.checkegetd) {
                         controls.video_layer.pause();
                     } else {
                         controls.video_layer.play();
                     }
+                });
+
+                // Contrast and Brightness controls
+                controls.bar_brightness.addEventListener('input', (event) => {
+                    state.brightness = Number(event.target.value);
+                    controls.video_layer.style.filter = `contrast(${state.contrast * 100}%) brightness(${state.brightness * 100}%)`;
+                });
+
+                controls.bar_contrast.addEventListener('input', (event) => {
+                    state.contrast = Number(event.target.value);
+                    controls.video_layer.style.filter = `contrast(${state.contrast * 100}%) brightness(${state.brightness * 100}%)`;
                 });
 
                 window.addEventListener('resize', () => {
@@ -248,8 +264,8 @@
 
                     // Install simple handlers for mouse move to pan adjustments
                     document.onmousemove = (e) => {
-                        const dx = e.clientX - m.x;
-                        const dy = e.clientY - m.y;
+                        const dx = (e.clientX - m.x)/state.scale;
+                        const dy = (e.clientY - m.y)/state.scale;
 
                         //apply rotations
                         const angleRad = state.angle * Math.PI / 180;
