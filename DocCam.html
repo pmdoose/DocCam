@@ -12,7 +12,7 @@
         <meta name="description" content="Free document camera web application for education.">
         <meta name="keywords" content="document camera, document, camera, doccam. web application, education, free software">
         <meta name="author" content="Paul Doose">
-        <meta name="version" content="20260326.01">
+        <meta name="version" content="20260406.01">
         
     </head>
     <body style="background-color: #000000; color:#FFFFFF">
@@ -342,11 +342,12 @@
             // Function to toggle fullscreen mode based on checkbox state
             function set_fullscreen_state() {
                 if (controls.chk_fullscr.checked) {
+                    // if the has touch, open in fullscreen with the document element to allow for better mobile compatibility. Otherwise, open fullscreen with just the camera.
                     const hasTouch = navigator.maxTouchPoints > 1;
                     if (hasTouch) {
                         openFullScreen(document.documentElement);
                     } else {
-                    openFullScreen(controls.disp_cam);
+                        openFullScreen(controls.disp_cam);
                     }
                 } else {
                     closeFullscreen();
@@ -358,10 +359,10 @@
                 const constraints = {
                     audio: false,
                     video: {
+                        // Request highest resoultion camera has, to allow for easier reading of small text.
+                        // The browser will automatically scale down the video to fit the display if the camera's resolution exceeds the display size.
                         width: { ideal: 99999 }, // Request a very high ideal width
                         height: { ideal: 99999 }, // Request a very high ideal height
-                        //deviceId: deviceId // Code was used to select specific camera.
-                        // Note: The browser will select the best available resolution up to the ideal values specified.
                     }
                 };
                 try {
@@ -379,27 +380,9 @@
         </script>
 
         <div hidden style="display: none;">
-            MIT License (modified)
+            Distroubuted under the PolyForm Noncommercial License 1.0.0
 
-            Copyright (c) 2026 Paul Doose
-
-            Permission is hereby granted, free of charge, to any person obtaining a copy
-            of this software and associated documentation files (the "Software"), to deal
-            in the Software without restriction, including without limitation the rights
-            to use, copy, modify, merge, publish, and/or distribute copies of the Software,
-            and to permit persons to whom the Software is furnished to do so, subject to
-            the following conditions:
-
-            The above copyright notice and this permission notice shall be included in all
-            copies or substantial portions of the Software.
-
-            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-            SOFTWARE.
+            <a href="https://polyformproject.org/licenses/noncommercial/1.0.0">License Details</a>
         </div>
     </body>
 </html>
